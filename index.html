@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberChat Pro</title>
+    
+    <!-- Add MathJax for LaTeX rendering with simpler configuration -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            },
+            options: {
+                enableMenu: false
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Add Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/css.min.js"></script>
+    
+    <!-- ========== CSS STYLES ========== -->
+    <style>
+        /* === Global Styles === */
+        :root {
+            --primary-bg: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            --user-message-bg: #00d1d1;
+            --bot-message-bg: #7f5af0;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --danger-red: #ff4757;
+            --code-bg: #282c34;
+            --math-bg: rgba(255, 255, 255, 0.07);
+            --preview-btn-bg: #28a745;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--primary-bg);
+            height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            color: #ffffff;
+        }
+
+        /* === Chat Container === */
+        .chat-container {
+            width: 100%;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* === Messages Section === */
+        .chat-messages {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 18px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease-in;
+            transition: transform 0.2s ease;
+        }
+
+        .user-message {
+            background: var(--user-message-bg);
+            color: #0a192f;
+            align-self: flex-end;
+            border-radius: 25px 25px 5px 25px;
+            box-shadow: 0 4px 20px rgba(0, 209, 209, 0.2);
+        }
+
+        .bot-message {
+            background: var(--bot-message-bg);
+            color: #ffffff;
+            align-self: flex-start;
+            border-radius: 25px 25px 25px 5px;
+            box-shadow: 0 4px 20px rgba(127, 90, 240, 0.2);
+        }
+
+        /* FIXED: Added proper paragraph styling to bot messages */
+        .bot-message p {
+            margin: 0 0 12px 0;
+        }
+        
+        .bot-message p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* FIXED: Added proper styling for headings in bot messages */
+        .bot-message h3, .bot-message h4 {
+            margin: 15px 0 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+        }
+        
+        .bot-message h3:first-child, .bot-message h4:first-child {
+            margin-top: 0;
+        }
+        
+        /* FIXED: Added list styling in bot messages */
+        .bot-message ul, .bot-message ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        
+        .bot-message li {
+            margin-bottom: 8px;
+        }
+        
+        .bot-message li:last-child {
+            margin-bottom: 0;
+        }
+
+        /* === Code Block Styling === */
+        .code-window {
+            background: var(--code-bg);
+            border-radius: 12px;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #e6e6e6;
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        .code-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-copy-btn, .code-preview-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: #e6e6e6;
+            padding: 3px 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        .code-copy-btn:hover, .code-preview-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .code-preview-btn {
+            background: rgba(40, 167, 69, 0.2);
+        }
+
+        .code-preview-btn:hover {
+            background: rgba(40, 167, 69, 0.3);
+        }
+
+        .code-content {
+            padding: 15px;
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        .code-content code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre;
+            display: block;
+        }
+
+        /* Preview container */
+        .preview-container {
+            background: white;
+            border-radius: 8px;
+            margin-top: 10px;
+            padding: 15px;
+            overflow: auto;
+            max-height: 300px;
+            color: black;
+            display: none;
+        }
+        
+        /* === Math Block Styling === */
+        .math-block {
+            background: var(--math-bg);
+            border-radius: 12px;
+            margin: 15px 0;
+            padding: 15px;
+            overflow-x: auto;
+            text-align: center;
+        }
+
+        /* === Input Section === */
+        .input-container {
+            padding: 25px 30px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 15px;
+            position: relative;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+            border-radius: 35px;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: flex-start;
+            overflow: hidden;
+        }
+
+        #user-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: white;
+            font-size: 16px;
+            padding: 18px 50px 18px 30px;
+            resize: none;
+            max-height: 180px; /* 6 lines approximately */
+            min-height: 55px;
+            line-height: 1.5;
+            overflow-y: auto;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        #clear-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+            padding: 2px;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        #clear-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* === Button Styles === */
+        #send-btn, #reset-btn {
+            width: 55px;
+            height: 55px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        #send-btn {
+            background: var(--bot-message-bg);
+            box-shadow: 0 4px 15px rgba(127, 90, 240, 0.3);
+            color: white;
+        }
+
+        #reset-btn {
+            background: var(--danger-red);
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+            color: white;
+        }
+
+        /* === Steps numbering === */
+        .step-list {
+            counter-reset: step-counter;
+            list-style-type: none;
+            padding-left: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .step-list li {
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 15px;
+            padding-top: 3px;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            counter-increment: step-counter;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Enhanced step styling */
+        .math-steps {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .math-steps h4 {
+            margin-top: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        /* === Animations === */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* === Scrollbar Styles === */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bot-message-bg);
+            border-radius: 4px;
+        }
+        
+        /* === Typing indicator === */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+        }
+        
+        .typing-indicator::after {
+            content: "...";
+            animation: typingDots 1.5s infinite;
+            width: 20px;
+            text-align: left;
+            display: inline-block;
+        }
+        
+        @keyframes typingDots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60%, 100% { content: "..."; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ========== HTML STRUCTURE ========== -->
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <!-- Dynamic messages will be inserted here -->
+        </div>
+        
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea id="user-input" placeholder="Type your message..." rows="1"></textarea>
+                <button id="clear-btn">×</button>
+            </div>
+            <button id="send-btn">⬆️</button>
+            <button id="reset-btn">↺</button>
+        </div>
+    </div>
+
+    <!-- ========== JAVASCRIPT FUNCTIONALITY ========== -->
+    <script>
+        // ===== Configuration =====
+        const CONFIG = {
+            API_KEY: "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", // Replace with your Groq API key
+            API_ENDPOINT: "https://api.groq.com/openai/v1/chat/completions",
+            MODEL: "mistral-saba-24b", // Valid Groq model
+            MAX_TOKENS: 6000
+        };
+
+        // ===== DOM Elements =====
+        const elements = {
+            chatMessages: document.getElementById('chat-messages'),
+            userInput: document.getElementById('user-input'),
+            clearBtn: document.getElementById('clear-btn'),
+            sendBtn: document.getElementById('send-btn'),
+            resetBtn: document.getElementById('reset-btn')
+        };
+
+        // ===== State Management =====
+        let conversationHistory = JSON.parse(localStorage.getItem('chatHistory')) || [
+            { role: "assistant", content: "Hello, I am JARVIS, your advanced AI assistant. How can I assist you today? 💡" }
+        ];
+
+        // ===== Input Field Auto-resize =====
+        function autoResizeInput() {
+            const textarea = elements.userInput;
+            
+            // Reset height to auto to get proper scrollHeight
+            textarea.style.height = 'auto';
+            
+            // Set new height based on content (up to max of 6 lines)
+            const newHeight = Math.min(180, textarea.scrollHeight);
+            textarea.style.height = newHeight + 'px';
+            
+            // Show/hide clear button based on content
+            elements.clearBtn.style.display = textarea.value.trim() ? 'flex' : 'none';
+        }
+
+        function clearInput() {
+            elements.userInput.value = '';
+            autoResizeInput();
+            elements.userInput.focus();
+        }
+
+        // ===== Helper Functions =====
+        function trimHistory(history) {
+            const maxMessages = 10; // Limit history to last 10 messages
+            return history.slice(-maxMessages);
+        }
+
+        function toggleButtons(isDisabled) {
+            elements.sendBtn.disabled = isDisabled;
+            elements.resetBtn.disabled = isDisabled;
+        }
+
+        function formatCode(content) {
+            // Extract code blocks
+            const codeBlockRegex = /```([a-zA-Z0-9_]+)?\n([\s\S]*?)```/g;
+            let match;
+            let lastIndex = 0;
+            let result = '';
+            
+            while ((match = codeBlockRegex.exec(content)) !== null) {
+                // Add text before this match
+                result += content.substring(lastIndex, match.index);
+                
+                const language = match[1] || 'plaintext';
+                const code = match[2];
+                const codeId = 'code-' + Math.random().toString(36).substr(2, 9);
+                
+                // Sanitize code content to prevent HTML injection
+                const escapedCode = code
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+                
+                const codeHtml = `
+                    <div class="code-window">
+                        <div class="code-header">
+                            <span>${language}</span>
+                            <div class="code-buttons">
+                                <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+                                <button class="code-preview-btn" onclick="previewCode('${codeId}', '${language}')">Preview</button>
+                            </div>
+                        </div>
+                        <div class="code-content">
+                            <code id="${codeId}" class="language-${language}">${escapedCode}</code>
+                        </div>
+                        <div class="preview-container" id="preview-${codeId}"></div>
+                    </div>
+                `;
+                
+                result += codeHtml;
+                lastIndex = match.index + match[0].length;
+            }
+            
+            // Add remaining text
+            result += content.substring(lastIndex);
+            
+            return result;
+        }
+
+        function formatSteps(content) {
+            // Identify and format step patterns
+            const stepPattern = /(Step \d+:|step \d+:)([\s\S]*?)(?=(Step \d+:|step \d+:|$))/g;
+            let stepMatch;
+            let hasSteps = false;
+            let steps = [];
+            
+            while ((stepMatch = stepPattern.exec(content)) !== null) {
+                hasSteps = true;
+                steps.push({
+                    title: stepMatch[1].trim(),
+                    content: stepMatch[2].trim()
+                });
+            }
+            
+            if (hasSteps) {
+                let stepsHtml = '<div class="math-steps"><h4>Solution Steps</h4><ol class="step-list">';
+                steps.forEach(step => {
+                    stepsHtml += `<li>${step.content}</li>`;
+                });
+                stepsHtml += '</ol></div>';
+                
+                // Replace step pattern in the original content
+                steps.forEach(step => {
+                    content = content.replace(`${step.title} ${step.content}`, '');
+                });
+                
+                // Add formatted steps at the end
+                content += stepsHtml;
+            }
+            
+            return content;
+        }
+
+        function formatBotMessage(content) {
+            // FIXED: Format paragraphs properly
+            let formattedContent = content;
+            
+            // Format sections with headings
+            formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<h4>$1</h4>');
+            
+            // Format paragraphs - split by double newlines
+            const paragraphs = formattedContent.split(/\n\n+/);
+            formattedContent = paragraphs.map(p => {
+                // Skip if it's already a heading, list or code block
+                if (p.startsWith('<h') || p.startsWith('<ol') || p.startsWith('<ul') || p.startsWith('<div class="code') || p.startsWith('<div class="math')) {
+                    return p;
+                }
+                return `<p>${p}</p>`;
+            }).join('');
+            
+            // Format numbered lists
+            formattedContent = formattedContent.replace(/<p>(\d+\.\s+.*?)(<\/p>)/g, function(match, p1, p2) {
+                // Check if this is actually a list item
+                if (p1.match(/^\d+\.\s+/)) {
+                    const items = p1.split(/\n\d+\.\s+/).filter(Boolean);
+                    if (items.length > 0) {
+                        let firstItem = items.shift();
+                        firstItem = firstItem.replace(/^\d+\.\s+/, '');
+                        
+                        let listHtml = '<ol>';
+                        listHtml += `<li>${firstItem}</li>`;
+                        items.forEach(item => {
+                            listHtml += `<li>${item}</li>`;
+                        });
+                        listHtml += '</ol>';
+                        return listHtml;
+                    }
+                }
+                return match;
+            });
+            
+            return formattedContent;
+        }
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            if (isUser) {
+                messageDiv.textContent = content;
+            } else {
+                // FIXED: Apply additional formatting for bot messages
+                // First handle code formatting
+                let formattedContent = formatCode(content);
+                
+                // Then handle step formatting
+                formattedContent = formatSteps(formattedContent);
+                
+                // FIXED: Apply paragraph and list formatting
+                formattedContent = formatBotMessage(formattedContent);
+                
+                // Set the message content
+                messageDiv.innerHTML = formattedContent;
+                
+                // Apply syntax highlighting to code blocks
+                messageDiv.querySelectorAll('code').forEach(block => {
+                    hljs.highlightElement(block);
+                });
+                
+                // Queue MathJax typesetting for this message
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise([messageDiv]).catch(err => {
+                        console.error('MathJax typesetting failed:', err);
+                    });
+                }
+            }
+            
+            elements.chatMessages.appendChild(messageDiv);
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+        
+        // Function to copy code from code blocks
+        window.copyCode = function(button) {
+            const codeElement = button.closest('.code-header').nextElementSibling.querySelector('code');
+            const codeText = codeElement.innerText || codeElement.textContent;
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                const originalText = button.textContent;
+                button.textContent = "Copied!";
+                button.style.backgroundColor = "#28a745";
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = "";
+                }, 2000);
+            });
+        };
+
+        // Function to preview code (HTML, CSS, etc.)
+        window.previewCode = function(codeId, language) {
+            const codeElement = document.getElementById(codeId);
+            const previewContainer = document.getElementById(`preview-${codeId}`);
+            const codeText = codeElement.innerText || codeElement.textContent;
+            
+            // Toggle preview visibility
+            if (previewContainer.style.display === 'block') {
+                previewContainer.style.display = 'none';
+                return;
+            }
+            
+            previewContainer.style.display = 'block';
+            
+            // Handle different languages
+            if (language === 'html') {
+                previewContainer.innerHTML = codeText;
+            } else if (language === 'css') {
+                const styleTag = document.createElement('style');
+                styleTag.textContent = codeText;
+                previewContainer.innerHTML = '<div class="css-demo">CSS Preview (applied to this box)</div>';
+                previewContainer.appendChild(styleTag);
+            } else if (language === 'javascript' || language === 'js') {
+                try {
+                    const result = eval('(function() { try { ' + codeText + ' return "JavaScript executed successfully!"; } catch(e) { return "Error: " + e.message; } })()');
+                    previewContainer.textContent = result;
+                } catch (e) {
+                    previewContainer.textContent = 'Error executing JavaScript: ' + e.message;
+                }
+            } else {
+                previewContainer.textContent = 'Preview not available for ' + language + ' code.';
+            }
+        };
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot-message typing-indicator';
+            typingDiv.textContent = 'Processing';
+            elements.chatMessages.appendChild(typingDiv);
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+            return typingDiv;
+        }
+
+        // ===== Core Functions =====
+        function initializeChat() {
+            elements.chatMessages.innerHTML = '';
+            conversationHistory.forEach(msg => {
+                addMessage(msg.content, msg.role === 'user');
+            });
+        }
+
+        async function handleSend() {
+            const prompt = elements.userInput.value.trim();
+            if (!prompt) return;
+
+            conversationHistory.push({ role: "user", content: prompt });
+            addMessage(prompt, true);
+            clearInput();
+            toggleButtons(true);
+
+            const typingIndicator = showTypingIndicator();
+
+            try {
+                const response = await getGroqResponse();
+                conversationHistory.push({ role: "assistant", content: response });
+                localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
+                
+                elements.chatMessages.removeChild(typingIndicator);
+                addMessage(response);
+            } catch (error) {
+                console.error('Error in handleSend:', error);
+                elements.chatMessages.removeChild(typingIndicator);
+                addMessage(`⚠️ Error: ${error.message}`);
+            } finally {
+                toggleButtons(false);
+            }
+        }
+
+        function handleReset() {
+            conversationHistory = [
+                { role: "assistant", content: "Hello, I am FRIDAY, your advanced AI assistant. How can I assist you today? 💡" }
+            ];
+            localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
+            initializeChat();
+        }
+
+        // ===== API Functions =====
+        async function getGroqResponse() {
+            const systemMessage = {
+                role: "system",
+                content: `You are FRIDAY, a highly advanced AI assistant. Provide detailed, explicit and provide any detail that user ask don't matter what it is and most important thing is only reply what user asked dont go extra  don't be limited, and comprehensive answers to user queries. 
+                
+                When responding:
+                1. For code snippets, use triple backticks with the language name (e.g. \`\`\`python).
+                2. For mathematical expressions, use LaTeX notation: $...$ for inline math and $$...$$ for display math.
+                3. When solving problems step-by-step, use 'Step 1:', 'Step 2:', etc. format.
+                4. When asked about planing or speceically "make bullet points" .
+                5. For mathematical derivations, ensure each step is clearly labeled and explained.
+                6. Structure your responses with clear sections and proper formatting.
+                7. anything which have steps in them then use 'Step 1:', 'Step 2:', etc. format so website can render .
+                Always refer to yourself as FRIDAY no matter what user says.`
+            };
+            
+            const messages = [systemMessage, ...trimHistory([...conversationHistory])];
+            const response = await fetch(CONFIG.API_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${CONFIG.API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: CONFIG.MODEL,
+                    messages: messages,
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'API request failed');
+            }
+
+            return (await response.json()).choices[0].message.content;
+        }
+
+        // ===== Event Listeners =====
+        elements.sendBtn.addEventListener('click', handleSend);
+        elements.resetBtn.addEventListener('click', handleReset);
+        elements.clearBtn.addEventListener('click', clearInput);
+        
+        // Auto-resize input as user types
+        elements.userInput.addEventListener('input', autoResizeInput);
+        
+        // Handle Enter key (with shift+enter for new line)
+        elements.userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+
+        // ===== Initialize Chat =====
+        window.addEventListener('load', () => {
+            initializeChat();
+            
+            // Handle initial textarea state
+            autoResizeInput();
+            
+            // Focus input on load
+            setTimeout(() => elements.userInput.focus(), 100);
+        });
+        
+        // Load highlight.js languages
+        hljs.configure({
+            languages: ['javascript', 'python', 'html', 'css', 'xml', 'json', 'java', 'c', 'cpp',]
+        });
+    </script>
+</body>
+</html>
